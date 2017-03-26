@@ -1,7 +1,6 @@
 package ldap.sample;
 
 import ldap.sample.domain.User;
-import ldap.sample.repo.UserRepo;
 
 import org.junit.After;
 import org.junit.AfterClass;

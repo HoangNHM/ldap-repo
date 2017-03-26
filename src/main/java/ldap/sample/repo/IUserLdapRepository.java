@@ -13,24 +13,24 @@ public interface IUserLdapRepository {
 	User findUser(String userName);
 	void deleteUser(String userName);
 	
-	void createUserProfile(String userName, Profile profile);
-	void updateUserProfile(String userName, Profile profile);
-	Profile findUserProfile(String userName, String profileId);
-	void deleteUserProfile(String userName, String profileId);
+	void createProfile(String userName, Profile profile);
+	void updateProfile(String userName, Profile profile);
+	Profile findProfile(String userName, String profileId);
+	void deleteProfile(String userName, String profileId);
 	
-	void createUserProfileInsurerProfile(String userName, String profileId, InsurerProfile insurerProfile);
-	void updateUserProfileInsurerProfile(String userName, String profileId, InsurerProfile insurerProfile);
-	InsurerProfile findUserProfileInsurerProfile(String userName, String profileId, String insurerProfileId);
-	void deleteUserProfileInsurerProfile(String userName, String profileId, String insurerProfileId);
+	void createInsurerProfile(String userName, String profileId, InsurerProfile insurerProfile);
+	void updateInsurerProfile(String userName, String profileId, InsurerProfile insurerProfile);
+	InsurerProfile findInsurerProfile(String userName, String profileId, String insurerProfileId);
+	void deleteInsurerProfile(String userName, String profileId, String insurerProfileId);
 	
 	void createRole(Role role);
 	void updateRole(Role role);
 	Role findRole(String roleCode);
 	void deleteRole(String roleCode);
 	
-	void createRolePermission(String roleCode, Permission permission);
-	void updateRolePermission(String roleCode, Permission permission);
-	Permission findRolePermission(String roleCode, String permissionId);
-	void deleteRolePermission(String roleCode, String permissionId);
+	void createPermission(String roleCode, Permission permission);
+	void updatePermission(String roleCode, Permission permission);
+	Permission findPermission(String roleCode, String permissionId);
+	void deletePermission(String roleCode, String permissionId);
 
 }

@@ -4,8 +4,6 @@ import ldap.sample.domain.InsurerProfile;
 import ldap.sample.domain.Profile;
 import ldap.sample.domain.User;
 import ldap.sample.repo.UserLdapRepository;
-import ldap.sample.repo.ProfileRepo;
-import ldap.sample.repo.UserRepo;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
