@@ -1,9 +1,7 @@
 package ldap.sample.repo;
 
 import ldap.sample.constant.ConstantLdap;
-import ldap.sample.domain.InsurerProfile;
-import ldap.sample.domain.Profile;
-import ldap.sample.domain.User;
+import ldap.sample.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.support.LdapNameBuilder;
@@ -49,7 +47,7 @@ public final class LdapHelper {
                 .add("cn=" + roleCode).build();
     }
 
-    LdapName buildRolePermissionDn(String roleCode, String permissionId) {
+    LdapName buildPermissionDn(String roleCode, String permissionId) {
         return LdapNameBuilder.newInstance(ConstantLdap.ROLES_DN_BASE)
                 .add("cn=" + roleCode)
                 .add("cn=" + permissionId)
@@ -175,8 +173,66 @@ public final class LdapHelper {
         return user;
     }
 
-    void deleteUser(String userName) {
-        ldapTemplate.unbind(buildUserDn(userName), true);
+    void createPermission(String roleCode, Permission permission) {
+        permission.setRoleCn(roleCode);
+        ldapTemplate.create(permission);
+    }
+
+    void createRole(Role role) {
+        ldapTemplate.create(role);
+        Set<Permission> permissions = role.getPermissions();
+        for (Permission permission :
+                permissions) {
+            createPermission(role.getRoleCode(), permission);
+        }
+    }
+
+    void updatePermission(String roleCode, Permission permission) {
+        permission.setRoleCn(roleCode);
+        LdapName permissionDn = buildPermissionDn(roleCode, permission.getPermissionId());
+        if (ldapTemplate.findByDn(permissionDn, Permission.class) != null) {
+            ldapTemplate.update(permission);
+        } else {
+            ldapTemplate.create(permission);
+        }
+    }
+
+    void updateRole(Role role) {
+        ldapTemplate.update(role);
+
+        LdapName roleDn = buildRoleDn(role.getRoleCode());
+        // Get list old permission base on roleDn
+        List<String> oldPermissionsId = removePrefixCn(ldapTemplate.list(roleDn));
+
+        // Update current user Permissions
+        Set<Permission> permissions = role.getPermissions();
+        for (Permission permission : permissions) {
+            oldPermissionsId.remove(permission.getPermissionId());
+            updatePermission(role.getRoleCode(), permission);
+        }
+
+        // Delete unused (oldPermissions - curPermissions) Role Permissions
+        for (String unUsePermissionId :
+                oldPermissionsId) {
+            LdapName unUsedPermissionDn = buildPermissionDn(role.getRoleCode(), unUsePermissionId);
+            ldapTemplate.unbind(unUsedPermissionDn);
+        }
+    }
+
+    Permission findPermission(String roleCode, String permissionId) {
+        LdapName permissionDn = buildPermissionDn(roleCode, permissionId);
+        return ldapTemplate.findByDn(permissionDn, Permission.class);
+    }
+
+    Role findRole(String roleCode) {
+        LdapName roleDn = buildRoleDn(roleCode);
+        Role role = ldapTemplate.findByDn(roleDn, Role.class);
+        List<String> permissionsId = removePrefixCn(ldapTemplate.list(roleDn));
+        for (String permissionId :
+                permissionsId) {
+            role.addPermission(findPermission(roleCode, permissionId));
+        }
+        return role;
     }
 
 }

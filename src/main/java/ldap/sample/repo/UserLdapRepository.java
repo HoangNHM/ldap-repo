@@ -36,7 +36,7 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public void deleteUser(String userName) {
-        ldapHelper.deleteUser(userName);
+        ldapTemplate.unbind(ldapHelper.buildUserDn(userName), true);
     }
 
     @Override
@@ -84,74 +84,44 @@ public class UserLdapRepository implements IUserLdapRepository {
     // Role
     @Override
     public void createRole(Role role) {
-        ldapTemplate.create(role);
-
-        Set<Permission> permissions = role.getPermissions();
-        for (Permission permission : permissions) {
-            permission.setRoleCn(role.getRoleCode());
-            ldapTemplate.create(permission);
-        }
+        ldapHelper.createRole(role);
     }
 
     @Override
     public void updateRole(Role role) {
-        Set<Permission> permissions = role.getPermissions();
-        for (Permission permission : permissions) {
-            permission.setRoleCn(role.getRoleCode());
-            ldapTemplate.update(permission);
-        }
-
-        ldapTemplate.update(role);
-    }
-
-    public void deleteRole(Role role) {
-        Set<Permission> permissions = role.getPermissions();
-        for (Permission permission : permissions) {
-            permission.setRoleCn(role.getRoleCode());
-            ldapTemplate.delete(permission);
-        }
-
-        ldapTemplate.delete(role);
+        ldapHelper.updateRole(role);
     }
 
     @Override
     public Role findRole(String roleCode) {
-        LdapName roleDn = buildRoleDn(roleCode);
-        Role role = ldapTemplate.findByDn(roleDn, Role.class);
-
-        List<String> permissionsCn = ldapTemplate.list(roleDn);
-        for (String permissionCn : permissionsCn) {
-            LdapName permissionDn = buildRolePermissionDn(roleCode,
-                    permissionCn);
-            role.addPermission(ldapTemplate.findByDn(permissionDn,
-                    Permission.class));
-        }
-        return role;
+        return ldapHelper.findRole(roleCode);
     }
 
     @Override
     public void deleteRole(String roleCode) {
-
+        LdapName roleDn = ldapHelper.buildRoleDn(roleCode);
+        ldapTemplate.unbind(roleDn, true);
     }
 
     @Override
     public void createPermission(String roleCode, Permission permission) {
-
+        ldapHelper.createPermission(roleCode, permission);
     }
 
     @Override
     public void updatePermission(String roleCode, Permission permission) {
-
+        ldapHelper.updatePermission(roleCode, permission);
     }
 
     @Override
     public Permission findPermission(String roleCode, String permissionId) {
-        return null;
+        return ldapHelper.findPermission(roleCode, permissionId);
     }
 
     @Override
     public void deletePermission(String roleCode, String permissionId) {
-
+        LdapName permissionDn = ldapHelper.buildPermissionDn(roleCode, permissionId);
+        ldapTemplate.unbind(permissionDn);
     }
 
 
