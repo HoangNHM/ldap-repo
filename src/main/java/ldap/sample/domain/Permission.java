@@ -1,17 +1,11 @@
 package ldap.sample.domain;
 
-import javax.naming.Name;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import ldap.sample.constant.ConstantLdap;
 import lombok.Data;
+import org.springframework.ldap.odm.annotations.*;
 
-import org.springframework.ldap.odm.annotations.Attribute;
-import org.springframework.ldap.odm.annotations.DnAttribute;
-import org.springframework.ldap.odm.annotations.Entry;
-import org.springframework.ldap.odm.annotations.Id;
-import org.springframework.ldap.odm.annotations.Transient;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import javax.naming.Name;
 
 @Data
 @JsonIgnoreProperties({ "id", "roleCn" })

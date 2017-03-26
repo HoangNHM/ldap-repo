@@ -1,10 +1,6 @@
 package ldap.sample.repo;
 
-import ldap.sample.domain.InsurerProfile;
-import ldap.sample.domain.Permission;
-import ldap.sample.domain.Profile;
-import ldap.sample.domain.Role;
-import ldap.sample.domain.User;
+import ldap.sample.domain.*;
 
 public interface IUserLdapRepository {
 	

@@ -6,8 +6,6 @@ import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.naming.ldap.LdapName;
-import java.util.List;
-import java.util.Set;
 
 @Repository
 public class UserLdapRepository implements IUserLdapRepository {
