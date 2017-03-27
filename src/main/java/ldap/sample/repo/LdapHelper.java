@@ -1,16 +1,25 @@
 package ldap.sample.repo;
 
-import ldap.sample.constant.ConstantLdap;
-import ldap.sample.domain.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ldap.core.LdapTemplate;
-import org.springframework.ldap.support.LdapNameBuilder;
-import org.springframework.stereotype.Service;
-
-import javax.naming.ldap.LdapName;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
+import javax.naming.ldap.LdapName;
+
+import ldap.sample.constant.ConstantLdap;
+import ldap.sample.domain.InsurerProfile;
+import ldap.sample.domain.Permission;
+import ldap.sample.domain.Profile;
+import ldap.sample.domain.Role;
+import ldap.sample.domain.User;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ldap.core.AttributesMapper;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.ldap.support.LdapNameBuilder;
+import org.springframework.stereotype.Service;
 
 /**
  * Created by vantuegia on 3/26/2017.
@@ -18,221 +27,269 @@ import java.util.Set;
 @Service
 public final class LdapHelper {
 
-    @Autowired
-    LdapTemplate ldapTemplate;
+	@Autowired
+	LdapTemplate ldapTemplate;
 
-    LdapName buildUserDn(String userName) {
-        return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
-                .add("cn=" + userName).build();
-    }
+	boolean isExist(LdapName dnName) {
+		String dn = dnName.toString();
+		int split = dn.indexOf(",");
+		String baseDn = dn.substring(split + 1);
+		String cn = dn.substring(0, split);
+		AttributesMapper attributesMapper = new AttributesMapper() {
 
-    LdapName buildProfileDn(String userName, String profileId) {
-        return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
-                .add("cn=" + userName)
-                .add("cn=" + profileId)
-                .build();
-    }
+			@Override
+			public Object mapFromAttributes(Attributes attrs)
+					throws NamingException {
+				return attrs.get("cn").get();
+			}
+		};
+		List<Object> list = ldapTemplate.search(baseDn, cn, attributesMapper);
+		if (list.isEmpty()) {
+			return false;
+		} else {
+			return true;
+		}
+	}
 
-    LdapName buildInsurerProfileDn(String userName,
-                                   String profileId, String insurerProfileId) {
-        return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
-                .add("cn=" + userName)
-                .add("cn=" + profileId)
-                .add("cn=" + insurerProfileId)
-                .build();
-    }
+	LdapName buildUserDn(String userName) {
+		return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
+				.add("cn=" + userName).build();
+	}
 
-    LdapName buildRoleDn(String roleCode) {
-        return LdapNameBuilder.newInstance(ConstantLdap.ROLES_DN_BASE)
-                .add("cn=" + roleCode).build();
-    }
+	LdapName buildProfileDn(String userName, String profileId) {
+		return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
+				.add("cn=" + userName).add("cn=" + profileId).build();
+	}
 
-    LdapName buildPermissionDn(String roleCode, String permissionId) {
-        return LdapNameBuilder.newInstance(ConstantLdap.ROLES_DN_BASE)
-                .add("cn=" + roleCode)
-                .add("cn=" + permissionId)
-                .build();
-    }
+	LdapName buildInsurerProfileDn(String userName, String profileId,
+			String insurerProfileId) {
+		return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
+				.add("cn=" + userName).add("cn=" + profileId)
+				.add("cn=" + insurerProfileId).build();
+	}
 
-    List<String> removePrefixCn(List<String> stringList) {
-        List<String> result = new ArrayList<String>();
-        for (String str :
-                stringList) {
-            if (str.startsWith("cn=")) {
-                result.add(str.substring(3));
-            }
-        }
-        return result;
-    }
+	LdapName buildRoleDn(String roleCode) {
+		return LdapNameBuilder.newInstance(ConstantLdap.ROLES_DN_BASE)
+				.add("cn=" + roleCode).build();
+	}
 
-    void createInsurerProfile(String userName, String profileId, InsurerProfile insurerProfile) {
-        insurerProfile.setUserCn(userName);
-        insurerProfile.setProfileCn(profileId);
-        ldapTemplate.create(insurerProfile);
-    }
+	LdapName buildPermissionDn(String roleCode, String permissionId) {
+		return LdapNameBuilder.newInstance(ConstantLdap.ROLES_DN_BASE)
+				.add("cn=" + roleCode).add("cn=" + permissionId).build();
+	}
 
-    void createProfile(String userName, Profile profile) {
-        profile.setUserCn(userName);
-        ldapTemplate.create(profile);
+	List<String> removePrefixCn(List<String> stringList) {
+		List<String> result = new ArrayList<String>();
+		for (String str : stringList) {
+			if (str.startsWith("cn=")) {
+				result.add(str.substring(3));
+			}
+		}
+		return result;
+	}
 
-        Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
-        for (InsurerProfile insurerProfile : insurerProfiles) {
-            createInsurerProfile(userName, profile.getProfileId(), insurerProfile);
-        }
-    }
+	void createInsurerProfile(String userName, String profileId,
+			InsurerProfile insurerProfile) {
+		insurerProfile.setUserCn(userName);
+		insurerProfile.setProfileCn(profileId);
+		ldapTemplate.create(insurerProfile);
+	}
 
-    void createUser(User user) {
-        ldapTemplate.create(user);
-        Set<Profile> userProfiles = user.getProfiles();
-        for (Profile profile : userProfiles) {
-            createProfile(user.getUserName(), profile);
-        }
-    }
+	void createProfile(String userName, Profile profile) {
+		profile.setUserCn(userName);
+		ldapTemplate.create(profile);
 
-    void updateInsurerProfile(String userName, String profileId, InsurerProfile insurerProfile) {
-        insurerProfile.setUserCn(userName);
-        insurerProfile.setProfileCn(profileId);
-        LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId, insurerProfile.getInsurerProfileId());
-        if (ldapTemplate.findByDn(insurerProfileDn, InsurerProfile.class) != null) {
-            ldapTemplate.update(insurerProfile);
-        } else {
-            ldapTemplate.create(insurerProfile);
-        }
-    }
+		Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
+		for (InsurerProfile insurerProfile : insurerProfiles) {
+			createInsurerProfile(userName, profile.getProfileId(),
+					insurerProfile);
+		}
+	}
 
-    void updateProfile(String userName, Profile profile) {
-        profile.setUserCn(userName);
-        LdapName profileDn = buildProfileDn(userName, profile.getProfileId());
-        if (ldapTemplate.findByDn(profileDn, Profile.class) != null) {
-            List<String> oldInsurerProfilesCn = removePrefixCn(ldapTemplate.list(profileDn));
-            ldapTemplate.update(profile);
+	void createUser(User user) {
+		ldapTemplate.create(user);
+		Set<Profile> userProfiles = user.getProfiles();
+		for (Profile profile : userProfiles) {
+			createProfile(user.getUserName(), profile);
+		}
+	}
 
-            Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
-            for (InsurerProfile insurerProfile : insurerProfiles) {
-                oldInsurerProfilesCn.remove(insurerProfile.getInsurerProfileId());
-                updateInsurerProfile(userName, profile.getProfileId(), insurerProfile);
-            }
+	void updateInsurerProfile(String userName, String profileId,
+			InsurerProfile insurerProfile) {
+		insurerProfile.setUserCn(userName);
+		insurerProfile.setProfileCn(profileId);
+		LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId,
+				insurerProfile.getInsurerProfileId());
+		if (isExist(insurerProfileDn)) {
+			ldapTemplate.update(insurerProfile);
+		} else {
+			ldapTemplate.create(insurerProfile);
+		}
+	}
 
-            for (String unUsedInsurerProfileId :
-                    oldInsurerProfilesCn) {
-                LdapName unUsedInsurerProfileDn = buildInsurerProfileDn(userName, profile.getProfileId(), unUsedInsurerProfileId);
-                ldapTemplate.unbind(unUsedInsurerProfileDn);
-            }
-        } else {
-            createProfile(userName, profile);
-        }
+	void updateProfile(String userName, Profile profile) {
+		profile.setUserCn(userName);
+		LdapName profileDn = buildProfileDn(userName, profile.getProfileId());
+		if (ldapTemplate.findByDn(profileDn, Profile.class) != null) {
+			List<String> oldInsurerProfilesCn = removePrefixCn(ldapTemplate
+					.list(profileDn));
+			ldapTemplate.update(profile);
 
-    }
+			Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
+			for (InsurerProfile insurerProfile : insurerProfiles) {
+				oldInsurerProfilesCn.remove(insurerProfile
+						.getInsurerProfileId());
+				updateInsurerProfile(userName, profile.getProfileId(),
+						insurerProfile);
+			}
 
-    void updateUser(User user) {
-        ldapTemplate.update(user);
+			for (String unUsedInsurerProfileId : oldInsurerProfilesCn) {
+				LdapName unUsedInsurerProfileDn = buildInsurerProfileDn(
+						userName, profile.getProfileId(),
+						unUsedInsurerProfileId);
+				ldapTemplate.unbind(unUsedInsurerProfileDn);
+			}
+		} else {
+			createProfile(userName, profile);
+		}
 
-        LdapName userDn = buildUserDn(user.getUserName());
-        // Get list old profile base on userDn
-        List<String> oldProfilesId = removePrefixCn(ldapTemplate.list(userDn));
+	}
 
-        // Update current user profile
-        Set<Profile> profiles = user.getProfiles();
-        for (Profile profile : profiles) {
-            oldProfilesId.remove(profile.getProfileId());
-            updateProfile(user.getUserName(), profile);
-        }
+	void updateUser(User user) {
+		ldapTemplate.update(user);
 
-        // Delete unused (oldProfiles - curProfiles)user profile
-        for (String unUsedProfileId :
-                oldProfilesId) {
-            LdapName unUsedProfileDn = buildProfileDn(user.getUserName(), unUsedProfileId);
-            ldapTemplate.unbind(unUsedProfileDn);
-        }
-    }
+		LdapName userDn = buildUserDn(user.getUserName());
+		// Get list old profile base on userDn
+		List<String> oldProfilesId = removePrefixCn(ldapTemplate.list(userDn));
 
-    InsurerProfile findInsurerProfile(String userName, String profileId, String insurerProfileId) {
-        LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId, insurerProfileId);
-        return ldapTemplate.findByDn(insurerProfileDn, InsurerProfile.class);
-    }
+		// Update current user profile
+		Set<Profile> profiles = user.getProfiles();
+		for (Profile profile : profiles) {
+			oldProfilesId.remove(profile.getProfileId());
+			updateProfile(user.getUserName(), profile);
+		}
 
-    Profile findProfile(String userName, String profileId) {
-        LdapName profileDn = buildProfileDn(userName, profileId);
-        Profile profile = ldapTemplate.findByDn(profileDn, Profile.class);
-        Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
-        for (InsurerProfile insurerProfile :
-                insurerProfiles) {
-            profile.addInsurerProfile(findInsurerProfile(userName, profileId, insurerProfile.getInsurerProfileId()));
-        }
-        return profile;
-    }
-    
-    User findUser(String userName) {
-        LdapName userDn = buildUserDn(userName);
-        User user = ldapTemplate.findByDn(userDn, User.class);
+		// Delete unused (oldProfiles - curProfiles)user profile
+		for (String unUsedProfileId : oldProfilesId) {
+			LdapName unUsedProfileDn = buildProfileDn(user.getUserName(),
+					unUsedProfileId);
+			ldapTemplate.unbind(unUsedProfileDn);
+		}
+	}
 
-        List<String> profilesId = removePrefixCn(ldapTemplate.listBindings(userDn));
-        for (String profileId : profilesId) {
-            user.addProfile(findProfile(userName, profileId));
-        }
-        return user;
-    }
+	InsurerProfile findInsurerProfile(String userName, String profileId,
+			String insurerProfileId) {
+		LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId,
+				insurerProfileId);
+		if (isExist(insurerProfileDn)) {
+			return ldapTemplate
+					.findByDn(insurerProfileDn, InsurerProfile.class);
+		} else {
+			return null;
+		}
+	}
 
-    void createPermission(String roleCode, Permission permission) {
-        permission.setRoleCn(roleCode);
-        ldapTemplate.create(permission);
-    }
+	Profile findProfile(String userName, String profileId) {
+		LdapName profileDn = buildProfileDn(userName, profileId);
+		if (isExist(profileDn)) {
+			Profile profile = ldapTemplate.findByDn(profileDn, Profile.class);
 
-    void createRole(Role role) {
-        ldapTemplate.create(role);
-        Set<Permission> permissions = role.getPermissions();
-        for (Permission permission :
-                permissions) {
-            createPermission(role.getRoleCode(), permission);
-        }
-    }
+			List<String> insurerProfilesId = removePrefixCn(ldapTemplate
+					.list(profileDn));
+			for (String insurerProfileId : insurerProfilesId) {
+				profile.addInsurerProfile(findInsurerProfile(userName,
+						profileId, insurerProfileId));
+			}
+			return profile;
+		} else {
+			return null;
+		}
+	}
 
-    void updatePermission(String roleCode, Permission permission) {
-        permission.setRoleCn(roleCode);
-        LdapName permissionDn = buildPermissionDn(roleCode, permission.getPermissionId());
-        if (ldapTemplate.findByDn(permissionDn, Permission.class) != null) {
-            ldapTemplate.update(permission);
-        } else {
-            ldapTemplate.create(permission);
-        }
-    }
+	User findUser(String userName) {
+		LdapName userDn = buildUserDn(userName);
+		if (isExist(userDn)) {
+			User user = ldapTemplate.findByDn(userDn, User.class);
 
-    void updateRole(Role role) {
-        ldapTemplate.update(role);
+			List<String> profilesId = removePrefixCn(ldapTemplate.list(userDn));
+			for (String profileId : profilesId) {
+				user.addProfile(findProfile(userName, profileId));
+			}
+			return user;
+		} else {
+			return null;
+		}
+	}
 
-        LdapName roleDn = buildRoleDn(role.getRoleCode());
-        // Get list old permission base on roleDn
-        List<String> oldPermissionsId = removePrefixCn(ldapTemplate.list(roleDn));
+	void createPermission(String roleCode, Permission permission) {
+		permission.setRoleCn(roleCode);
+		ldapTemplate.create(permission);
+	}
 
-        // Update current user Permissions
-        Set<Permission> permissions = role.getPermissions();
-        for (Permission permission : permissions) {
-            oldPermissionsId.remove(permission.getPermissionId());
-            updatePermission(role.getRoleCode(), permission);
-        }
+	void createRole(Role role) {
+		ldapTemplate.create(role);
+		Set<Permission> permissions = role.getPermissions();
+		for (Permission permission : permissions) {
+			createPermission(role.getRoleCode(), permission);
+		}
+	}
 
-        // Delete unused (oldPermissions - curPermissions) Role Permissions
-        for (String unUsePermissionId :
-                oldPermissionsId) {
-            LdapName unUsedPermissionDn = buildPermissionDn(role.getRoleCode(), unUsePermissionId);
-            ldapTemplate.unbind(unUsedPermissionDn);
-        }
-    }
+	void updatePermission(String roleCode, Permission permission) {
+		permission.setRoleCn(roleCode);
+		LdapName permissionDn = buildPermissionDn(roleCode,
+				permission.getPermissionId());
+		if (isExist(permissionDn)) {
+			ldapTemplate.update(permission);
+		} else {
+			ldapTemplate.create(permission);
+		}
+	}
 
-    Permission findPermission(String roleCode, String permissionId) {
-        LdapName permissionDn = buildPermissionDn(roleCode, permissionId);
-        return ldapTemplate.findByDn(permissionDn, Permission.class);
-    }
+	void updateRole(Role role) {
+		ldapTemplate.update(role);
 
-    Role findRole(String roleCode) {
-        LdapName roleDn = buildRoleDn(roleCode);
-        Role role = ldapTemplate.findByDn(roleDn, Role.class);
-        List<String> permissionsId = removePrefixCn(ldapTemplate.list(roleDn));
-        for (String permissionId :
-                permissionsId) {
-            role.addPermission(findPermission(roleCode, permissionId));
-        }
-        return role;
-    }
+		LdapName roleDn = buildRoleDn(role.getRoleCode());
+		// Get list old permission base on roleDn
+		List<String> oldPermissionsId = removePrefixCn(ldapTemplate
+				.list(roleDn));
+
+		// Update current user Permissions
+		Set<Permission> permissions = role.getPermissions();
+		for (Permission permission : permissions) {
+			oldPermissionsId.remove(permission.getPermissionId());
+			updatePermission(role.getRoleCode(), permission);
+		}
+
+		// Delete unused (oldPermissions - curPermissions) Role Permissions
+		for (String unUsePermissionId : oldPermissionsId) {
+			LdapName unUsedPermissionDn = buildPermissionDn(role.getRoleCode(),
+					unUsePermissionId);
+			ldapTemplate.unbind(unUsedPermissionDn);
+		}
+	}
+
+	Permission findPermission(String roleCode, String permissionId) {
+		LdapName permissionDn = buildPermissionDn(roleCode, permissionId);
+		if (isExist(permissionDn)) {
+			return ldapTemplate.findByDn(permissionDn, Permission.class);
+		} else {
+			return null;
+		}
+	}
+
+	Role findRole(String roleCode) {
+		LdapName roleDn = buildRoleDn(roleCode);
+		if (isExist(roleDn)) {
+			Role role = ldapTemplate.findByDn(roleDn, Role.class);
+			List<String> permissionsId = removePrefixCn(ldapTemplate
+					.list(roleDn));
+			for (String permissionId : permissionsId) {
+				role.addPermission(findPermission(roleCode, permissionId));
+			}
+			return role;
+		} else {
+			return null;
+		}
+	}
 
 }
