@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
  * Created by vantuegia on 3/26/2017.
  */
 @Service
-public final class LdapHelper {
+final class LdapHelper {
 
 	@Autowired
 	LdapTemplate ldapTemplate;

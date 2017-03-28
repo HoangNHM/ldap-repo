@@ -11,10 +11,10 @@ import javax.naming.ldap.LdapName;
 public class UserLdapRepository implements IUserLdapRepository {
 
     @Autowired
-    LdapTemplate ldapTemplate;
+    private LdapTemplate ldapTemplate;
 
     @Autowired
-    LdapHelper ldapHelper;
+    private LdapHelper ldapHelper;
 
     // Users
     @Override
@@ -49,7 +49,11 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public Profile findProfile(String userName, String profileId) {
-        return ldapHelper.findProfile(userName, profileId);
+        LdapName userDn = ldapHelper.buildUserDn(userName);
+        if (ldapHelper.isExist(userDn)) {
+            return ldapHelper.findProfile(userName, profileId);
+        }
+        return null;
     }
 
     @Override
@@ -70,7 +74,14 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public InsurerProfile findInsurerProfile(String userName, String profileId, String insurerProfileId) {
-        return ldapHelper.findInsurerProfile(userName, profileId, insurerProfileId);
+        LdapName userDn = ldapHelper.buildUserDn(userName);
+        if (ldapHelper.isExist(userDn)) {
+            LdapName profileDn = ldapHelper.buildProfileDn(userName, profileId);
+            if (ldapHelper.isExist(profileDn)) {
+                return ldapHelper.findInsurerProfile(userName, profileId, insurerProfileId);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -113,7 +124,11 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public Permission findPermission(String roleCode, String permissionId) {
-        return ldapHelper.findPermission(roleCode, permissionId);
+        LdapName roleDn = ldapHelper.buildRoleDn(roleCode);
+        if (ldapHelper.isExist(roleDn)) {
+            return ldapHelper.findPermission(roleCode, permissionId);
+        }
+        return null;
     }
 
     @Override

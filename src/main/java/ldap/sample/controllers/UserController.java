@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.xerox.amazonws.ec2.ImageListAttribute.ImageListAttributeItemType.userId;
+
 @RestController
 public class UserController {
 
@@ -28,7 +30,7 @@ public class UserController {
 
 	@RequestMapping("/about")
 	public String about() {
-		return "Microservice group integration";
+		return "Micro service group ldap repo";
 	}
 
 	// User
@@ -59,44 +61,42 @@ public class UserController {
 	}
 	
 	// Profile
-	@RequestMapping(method = RequestMethod.POST, value = "/profiles")
-	public ResponseEntity<?> createProfile(String userName, @RequestBody Profile profile) {
-
-		iposRepository.createProfile(userName, profile);
-
+	@RequestMapping(method = RequestMethod.POST, value = "/users/{userId:.+}/profiles")
+	public ResponseEntity<?> createProfile(@PathVariable String userId, @RequestBody Profile profile) {
+		iposRepository.createProfile(userId, profile);
 		return new ResponseEntity<>(profile, HttpStatus.CREATED);
 	}
 
-	@RequestMapping(method = RequestMethod.GET, value = "/users/{profileId}")
-	public ResponseEntity<?> findProfile(String userName, @PathVariable String profileId) {
-		Profile profile = iposRepository.findProfile(userName, profileId);
+	@RequestMapping(method = RequestMethod.GET, value = "/users/{userId:.+}/profiles/{profileId}")
+	public ResponseEntity<?> findProfile(@PathVariable String userId, @PathVariable String profileId) {
+		Profile profile = iposRepository.findProfile(userId, profileId);
 		return new ResponseEntity<>(profile, HttpStatus.FOUND);
 	}
 	
-	@RequestMapping(method = RequestMethod.PUT, value = "/users/{userId:.+}")
-	public ResponseEntity<?> updateProfile(@PathVariable String userId, @RequestBody Profile profile) {
-		iposRepository.updateUser(profile);
-		return new ResponseEntity<>(profile, HttpStatus.OK);
-	}
-	
-	@RequestMapping(method = RequestMethod.DELETE, value = "/users/{userId:.+}")
-	public ResponseEntity<?> deleteUser(@PathVariable String userId) {
-		iposRepository.deleteUser(userId);
+	@RequestMapping(method = RequestMethod.PUT, value = "/users/{userId:.+}/profiles/{profileId}")
+	public ResponseEntity<?> updateProfile(@PathVariable String userId, @PathVariable String profileId, @RequestBody Profile profile) {
+		iposRepository.updateProfile(userId, profile);
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 	
+	@RequestMapping(method = RequestMethod.DELETE, value = "/users/{userId:.+}/profiles/{profileId}")
+	public ResponseEntity<?> deleteProfile(@PathVariable String userId, @PathVariable String profileId) {
+		iposRepository.deleteProfile(userId, profileId);
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
 	// Role
 	@RequestMapping(method = RequestMethod.POST, value = "/roles")
 	public ResponseEntity<?> createRole(@RequestBody Role role) {
 		iposRepository.createRole(role);
-		return new ResponseEntity<>(role, HttpStatus.CREATED);
+		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
-	
+
 	@RequestMapping(method = RequestMethod.PUT, value = "/roles/{roleCode}")
 	public ResponseEntity<?> updateRole(@PathVariable String roleCode, @RequestBody Role role) {
 		iposRepository.updateRole(role);
 		return new ResponseEntity<>(HttpStatus.OK);
-	}	
+	}
 
 	@RequestMapping(method = RequestMethod.GET, value = "/roles/{roleCode}")
 	public ResponseEntity<?> findRole(@PathVariable String roleCode) {
@@ -107,6 +107,31 @@ public class UserController {
 	@RequestMapping(method = RequestMethod.DELETE, value = "/roles/{roleCode}")
 	public ResponseEntity<?> deleteRole(@PathVariable String roleCode) {
 		iposRepository.deleteRole(roleCode);
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	// Permission
+	@RequestMapping(method = RequestMethod.POST, value = "/roles/{roleCode}/permissions")
+	public ResponseEntity<?> createPermission(@PathVariable String roleCode, @RequestBody Permission permission) {
+		iposRepository.createPermission(roleCode, permission);
+		return new ResponseEntity<>(HttpStatus.CREATED);
+	}
+
+	@RequestMapping(method = RequestMethod.PUT, value = "/roles/{roleCode}/permissions/{permissionsId}")
+	public ResponseEntity<?> updatePermission(@PathVariable String roleCode, @PathVariable String permissionsId, @RequestBody Permission permission) {
+		iposRepository.updatePermission(roleCode, permission);
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@RequestMapping(method = RequestMethod.GET, value = "/roles/{roleCode}/permissions/{permissionsId}")
+	public ResponseEntity<?> findPermission(@PathVariable String roleCode, @PathVariable String permissionsId) {
+		Permission permission = iposRepository.findPermission(roleCode, permissionsId);
+		return new ResponseEntity<>(permission, HttpStatus.FOUND);
+	}
+
+	@RequestMapping(method = RequestMethod.DELETE, value = "/roles/{roleCode}/permissions/{permissionsId}")
+	public ResponseEntity<?> deletePermission(@PathVariable String roleCode, @PathVariable String permissionsId) {
+		iposRepository.deletePermission(roleCode, permissionsId);
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 	
