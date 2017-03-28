@@ -17,7 +17,7 @@ public class Profile {
 	@Id
 	private Name id;
 
-	@Attribute(name = "cn")
+	@Attribute(name = "profileId")
 	@DnAttribute(value = "cn", index = 4)
 	private String profileId;
 

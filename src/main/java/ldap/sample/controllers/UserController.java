@@ -174,7 +174,6 @@ public class UserController {
 		InsurerProfile iProfile = new InsurerProfile();
 		iProfile.setAgentCode(name);
 		iProfile.setInsurerId(name);
-		iProfile.setInsurerProfileId(name);
 		profile1.addInsurerProfile(iProfile);
 
 		return user;

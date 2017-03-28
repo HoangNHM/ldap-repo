@@ -15,7 +15,7 @@ public class Permission {
 	@Id
 	private Name id;
 
-	@Attribute(name = "cn")
+	@Attribute(name = "permissionId")
 	@DnAttribute(value = "cn", index = 4)
 	private String permissionId;
 

@@ -119,7 +119,7 @@ final class LdapHelper {
 		insurerProfile.setUserCn(userName);
 		insurerProfile.setProfileCn(profileId);
 		LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId,
-				insurerProfile.getInsurerProfileId());
+				insurerProfile.getInsurerId());
 		if (isExist(insurerProfileDn)) {
 			ldapTemplate.update(insurerProfile);
 		} else {
@@ -138,7 +138,7 @@ final class LdapHelper {
 			Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
 			for (InsurerProfile insurerProfile : insurerProfiles) {
 				oldInsurerProfilesCn.remove(insurerProfile
-						.getInsurerProfileId());
+						.getInsurerId());
 				updateInsurerProfile(userName, profile.getProfileId(),
 						insurerProfile);
 			}

@@ -17,7 +17,7 @@ public class Role {
 	@Id
 	private Name id;
 
-	@Attribute(name = "cn")
+	@Attribute(name = "roleCode")
 	@DnAttribute(value = "cn", index = 3)
 	private String roleCode;
 

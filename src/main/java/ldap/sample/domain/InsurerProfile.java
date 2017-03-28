@@ -15,9 +15,9 @@ public class InsurerProfile {
 	@Id
 	private Name id;
 
-	@Attribute(name = "cn")
+	@Attribute(name = "insurerId")
 	@DnAttribute(value = "cn", index = 5)
-	private String insurerProfileId;
+	private String insurerId;
 
 	@DnAttribute(value = "cn", index = 4)
 	@Transient
@@ -26,9 +26,6 @@ public class InsurerProfile {
 	@DnAttribute(value = "cn", index = 3)
 	@Transient
 	private String userCn;
-
-	@Attribute(name = "insurerId")
-	private String insurerId;
 
 	@Attribute(name = "agentCode")
 	private String agentCode;
