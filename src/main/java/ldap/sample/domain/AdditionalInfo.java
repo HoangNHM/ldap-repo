@@ -8,19 +8,20 @@ import org.springframework.ldap.odm.annotations.*;
 import javax.naming.Name;
 
 @Data
-@JsonIgnoreProperties({ "id", "profileCn", "userCn" })
+@JsonIgnoreProperties({ "id", "profileCn", "userCn", "insurerCn" })
 @Entry(objectClasses = { "insurerProfile", "top" }, base = ConstantLdap.USERS_DN_BASE)
-public class InsurerProfile {
+public class AdditionalInfo {
 
 	@Id
 	private Name id;
 
-	@Attribute(name = "insurerId")
+	@Attribute(name = "additionalInfoId")
+	@DnAttribute(value = "cn", index = 6)
+	private String additionalInfoId;
+
 	@DnAttribute(value = "cn", index = 5)
-	private String insurerId;
-	
 	@Transient
-	private AdditionalInfo additionalInfo;
+	private String insurerCn;
 
 	@DnAttribute(value = "cn", index = 4)
 	@Transient
@@ -29,8 +30,5 @@ public class InsurerProfile {
 	@DnAttribute(value = "cn", index = 3)
 	@Transient
 	private String userCn;
-
-	@Attribute(name = "agentCode")
-	private String agentCode;
 
 }

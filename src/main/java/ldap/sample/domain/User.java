@@ -22,7 +22,7 @@ public class User {
     private String userName;
     
     @Transient
-    private Set<Profile> profiles = new HashSet<Profile>();
+    private Profile profile;
     
     @Attribute(name = "address")
     private Set<String> addresses = new HashSet<String>();
@@ -65,11 +65,7 @@ public class User {
     
     @Attribute(name = "userPassword")
     private String userPassword;
-    
-    public void addProfile(Profile profile) {
-    	profiles.add(profile);
-    }
-    
+        
     public void addPhoneNumber(String phoneNumber) {
     	phoneNumbers.add(phoneNumber);
     }

@@ -1,5 +1,9 @@
 package ldap.sample.controllers;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import ldap.sample.domain.AdditionalInfo;
 import ldap.sample.domain.InsurerProfile;
 import ldap.sample.domain.Permission;
 import ldap.sample.domain.Profile;
@@ -35,8 +39,10 @@ public class UserController {
 
 	// User
 	@RequestMapping(method = RequestMethod.POST, value = "/users")
-	public ResponseEntity<?> createUser(@RequestBody User user) {
+	public ResponseEntity<?> createUser(@RequestBody User user,
+			String name) {
 
+//		user = newUser(name);
 		iposRepository.createUser(user);
 
 		return new ResponseEntity<>(user, HttpStatus.CREATED);
@@ -166,15 +172,23 @@ public class UserController {
 		
 		Profile profile1 = new Profile();
 		profile1.setProfileId("PF000001");
-		user.addProfile(profile1);
-		Profile profile2 = new Profile();
-		profile2.setProfileId("PF000002");
-		user.addProfile(profile2);
+		user.setProfile(profile1);
+		Set<String> role = new HashSet<String>();
+		role.add("role1");
+		role.add("role2");
+		profile1.setRole(role);
 
 		InsurerProfile iProfile = new InsurerProfile();
 		iProfile.setAgentCode(name);
 		iProfile.setInsurerId(name);
 		profile1.addInsurerProfile(iProfile);
+		
+		AdditionalInfo adi = new AdditionalInfo();
+		adi.setAdditionalInfoId("ADI00001");
+		adi.setUserCn(name);
+		adi.setProfileCn(profile1.getProfileId());
+		adi.setInsurerCn(iProfile.getInsurerId());
+		iProfile.setAdditionalInfo(adi);
 
 		return user;
 	}

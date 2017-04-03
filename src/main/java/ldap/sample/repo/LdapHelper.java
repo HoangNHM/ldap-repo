@@ -9,6 +9,7 @@ import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 
 import ldap.sample.constant.ConstantLdap;
+import ldap.sample.domain.AdditionalInfo;
 import ldap.sample.domain.InsurerProfile;
 import ldap.sample.domain.Permission;
 import ldap.sample.domain.Profile;
@@ -32,7 +33,7 @@ final class LdapHelper {
 
 	boolean isExist(LdapName dnName) {
 		String dn = dnName.toString();
-		int split = dn.indexOf(",");
+		int split = dn.indexOf(',');
 		String baseDn = dn.substring(split + 1);
 		String cn = dn.substring(0, split);
 		AttributesMapper attributesMapper = new AttributesMapper() {
@@ -68,6 +69,14 @@ final class LdapHelper {
 				.add("cn=" + insurerProfileId).build();
 	}
 
+	LdapName buildAdditionalInfoDn(String userName, String profileId,
+			String insurerProfileId, String additionalInfoId) {
+		return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
+				.add("cn=" + userName).add("cn=" + profileId)
+				.add("cn=" + insurerProfileId).add("cn=" + additionalInfoId)
+				.build();
+	}
+
 	LdapName buildRoleDn(String roleCode) {
 		return LdapNameBuilder.newInstance(ConstantLdap.ROLES_DN_BASE)
 				.add("cn=" + roleCode).build();
@@ -88,11 +97,25 @@ final class LdapHelper {
 		return result;
 	}
 
+	void createAdditionalInfo(String userName, String profileId,
+			String insurerProfileId, AdditionalInfo adi) {
+		adi.setUserCn(userName);
+		adi.setProfileCn(profileId);
+		adi.setInsurerCn(insurerProfileId);
+		ldapTemplate.create(adi);
+	}
+
 	void createInsurerProfile(String userName, String profileId,
 			InsurerProfile insurerProfile) {
 		insurerProfile.setUserCn(userName);
 		insurerProfile.setProfileCn(profileId);
 		ldapTemplate.create(insurerProfile);
+
+		AdditionalInfo adi = insurerProfile.getAdditionalInfo();
+		if (adi != null) {
+			createAdditionalInfo(userName, profileId,
+					insurerProfile.getInsurerId(), adi);
+		}
 	}
 
 	void createProfile(String userName, Profile profile) {
@@ -100,6 +123,8 @@ final class LdapHelper {
 		ldapTemplate.create(profile);
 
 		Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
+		assert !insurerProfiles.isEmpty() : "User " + userName + ", profile "
+				+ profile + ", Must have InsurerProfile";
 		for (InsurerProfile insurerProfile : insurerProfiles) {
 			createInsurerProfile(userName, profile.getProfileId(),
 					insurerProfile);
@@ -108,9 +133,23 @@ final class LdapHelper {
 
 	void createUser(User user) {
 		ldapTemplate.create(user);
-		Set<Profile> userProfiles = user.getProfiles();
-		for (Profile profile : userProfiles) {
-			createProfile(user.getUserName(), profile);
+		Profile userProfile = user.getProfile();
+		if (userProfile != null) {
+			createProfile(user.getUserName(), userProfile);
+		}
+	}
+
+	void updateAdditionalInfo(String userName, String profileId,
+			String insurerProfileId, AdditionalInfo adi) {
+		adi.setUserCn(userName);
+		adi.setProfileCn(profileId);
+		adi.setInsurerCn(insurerProfileId);
+		LdapName adiDn = buildAdditionalInfoDn(userName, profileId,
+				insurerProfileId, adi.getAdditionalInfoId());
+		if (isExist(adiDn)) {
+			ldapTemplate.update(adi);
+		} else {
+			ldapTemplate.create(adi);
 		}
 	}
 
@@ -121,24 +160,41 @@ final class LdapHelper {
 		LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId,
 				insurerProfile.getInsurerId());
 		if (isExist(insurerProfileDn)) {
+			List<String> oldAdiCn = removePrefixCn(ldapTemplate
+					.list(insurerProfileDn));
+
 			ldapTemplate.update(insurerProfile);
+			AdditionalInfo adi = insurerProfile.getAdditionalInfo();
+			if (adi != null) {
+				oldAdiCn.remove(adi.getAdditionalInfoId());
+				updateAdditionalInfo(userName, profileId,
+						insurerProfile.getInsurerId(), adi);
+			}
+
+			for (String unUsedAdiId : oldAdiCn) {
+				LdapName unUsedAdiDn = buildAdditionalInfoDn(userName,
+						profileId, insurerProfile.getInsurerId(), unUsedAdiId);
+				ldapTemplate.unbind(unUsedAdiDn);
+			}
+
 		} else {
-			ldapTemplate.create(insurerProfile);
+			createInsurerProfile(userName, profileId, insurerProfile);
 		}
 	}
 
 	void updateProfile(String userName, Profile profile) {
 		profile.setUserCn(userName);
 		LdapName profileDn = buildProfileDn(userName, profile.getProfileId());
-		if (ldapTemplate.findByDn(profileDn, Profile.class) != null) {
+		if (isExist(profileDn)) {
 			List<String> oldInsurerProfilesCn = removePrefixCn(ldapTemplate
 					.list(profileDn));
 			ldapTemplate.update(profile);
 
 			Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
+			assert !insurerProfiles.isEmpty() : "User " + userName
+					+ ", profile " + profile + ", Must have InsurerProfile";
 			for (InsurerProfile insurerProfile : insurerProfiles) {
-				oldInsurerProfilesCn.remove(insurerProfile
-						.getInsurerId());
+				oldInsurerProfilesCn.remove(insurerProfile.getInsurerId());
 				updateInsurerProfile(userName, profile.getProfileId(),
 						insurerProfile);
 			}
@@ -163,8 +219,8 @@ final class LdapHelper {
 		List<String> oldProfilesId = removePrefixCn(ldapTemplate.list(userDn));
 
 		// Update current user profile
-		Set<Profile> profiles = user.getProfiles();
-		for (Profile profile : profiles) {
+		Profile profile = user.getProfile();
+		if (profile != null) {
 			oldProfilesId.remove(profile.getProfileId());
 			updateProfile(user.getUserName(), profile);
 		}
@@ -177,13 +233,36 @@ final class LdapHelper {
 		}
 	}
 
+	AdditionalInfo findAdditionalInfo(String userName, String profileId,
+			String insurerProfileId, String adiId) {
+		LdapName adiDn = buildAdditionalInfoDn(userName, profileId,
+				insurerProfileId, adiId);
+		if (isExist(adiDn)) {
+			return ldapTemplate.findByDn(adiDn, AdditionalInfo.class);
+		} else {
+			return null;
+		}
+	}
+
 	InsurerProfile findInsurerProfile(String userName, String profileId,
 			String insurerProfileId) {
 		LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId,
 				insurerProfileId);
 		if (isExist(insurerProfileDn)) {
-			return ldapTemplate
-					.findByDn(insurerProfileDn, InsurerProfile.class);
+			InsurerProfile insurerProfile = ldapTemplate.findByDn(
+					insurerProfileDn, InsurerProfile.class);
+
+			List<String> adisId = removePrefixCn(ldapTemplate
+					.list(insurerProfileDn));
+			
+			assert adisId.size() < 2 : "User " + userName + ", profile "
+					+ profileId + ", insurerProfile " + insurerProfileId
+					+ ", Multiple AdditionalInfo is invalid";
+			for (String adiId : adisId) {
+				insurerProfile.setAdditionalInfo(findAdditionalInfo(userName,
+						profileId, insurerProfileId, adiId));
+			}
+			return insurerProfile;
 		} else {
 			return null;
 		}
@@ -212,8 +291,10 @@ final class LdapHelper {
 			User user = ldapTemplate.findByDn(userDn, User.class);
 
 			List<String> profilesId = removePrefixCn(ldapTemplate.list(userDn));
+			assert profilesId.size() < 2 : "User " + userName
+					+ ", Multiple profile is invalid";
 			for (String profileId : profilesId) {
-				user.addProfile(findProfile(userName, profileId));
+				user.setProfile(findProfile(userName, profileId));
 			}
 			return user;
 		} else {

@@ -20,7 +20,10 @@ public class Application {
     ContextSource contextSource() {
 
         LdapContextSource ldapContextSource = new LdapContextSource();
-        ldapContextSource.setUrl("ldap://127.0.0.1:33389");
+        /*ldapContextSource.setUrl("ldap://20.203.6.133:389");
+        ldapContextSource.setPassword("secret");
+        ldapContextSource.setUserDn("uid=admin,ou=system");*/
+        ldapContextSource.setUrl("ldap://localhost:10389");
         ldapContextSource.setPassword("secret");
         ldapContextSource.setUserDn("uid=admin,ou=system");
 //        ldapContextSource.setBase("dc=example,dc=com");
