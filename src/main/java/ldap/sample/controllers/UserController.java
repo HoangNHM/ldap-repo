@@ -39,10 +39,10 @@ public class UserController {
 
 	// User
 	@RequestMapping(method = RequestMethod.POST, value = "/users")
-	public ResponseEntity<?> createUser(@RequestBody User user,
+	public ResponseEntity<?> createUser(
 			String name) {
 
-//		user = newUser(name);
+		User user = newUser(name);
 		iposRepository.createUser(user);
 
 		return new ResponseEntity<>(user, HttpStatus.CREATED);
@@ -170,25 +170,26 @@ public class UserController {
 		user.setUserName(name);
 		user.setUserPassword("P@ssword123");
 		
-		Profile profile1 = new Profile();
-		profile1.setProfileId("PF000001");
-		user.setProfile(profile1);
+		Profile profile = new Profile();
+		profile.setProfileId("PF000001");
+		user.setProfile(profile);
 		Set<String> role = new HashSet<String>();
 		role.add("role1");
 		role.add("role2");
-		profile1.setRole(role);
+		profile.setRole(role);
 
 		InsurerProfile iProfile = new InsurerProfile();
-		iProfile.setAgentCode(name);
-		iProfile.setInsurerId(name);
-		profile1.addInsurerProfile(iProfile);
-		
-		AdditionalInfo adi = new AdditionalInfo();
-		adi.setAdditionalInfoId("ADI00001");
-		adi.setUserCn(name);
-		adi.setProfileCn(profile1.getProfileId());
-		adi.setInsurerCn(iProfile.getInsurerId());
-		iProfile.setAdditionalInfo(adi);
+		iProfile.setAgentCode("AC32113");
+		iProfile.setInsurerId("InsurerId01");
+
+        AdditionalInfo adi = new AdditionalInfo();
+        adi.setAdditionalInfoId("ADI00001");
+        adi.setUserCn(name);
+        adi.setProfileCn(profile.getProfileId());
+        adi.setInsurerCn(iProfile.getInsurerId());
+        iProfile.setAdditionalInfo(adi);
+
+        profile.addInsurerProfile(iProfile);
 
 		return user;
 	}

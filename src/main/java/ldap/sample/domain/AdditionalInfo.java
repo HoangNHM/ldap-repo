@@ -9,7 +9,7 @@ import javax.naming.Name;
 
 @Data
 @JsonIgnoreProperties({ "id", "profileCn", "userCn", "insurerCn" })
-@Entry(objectClasses = { "insurerProfile", "top" }, base = ConstantLdap.USERS_DN_BASE)
+@Entry(objectClasses = { "additionalInfo", "top" }, base = ConstantLdap.USERS_DN_BASE)
 public class AdditionalInfo {
 
 	@Id
