@@ -1,6 +1,7 @@
 package ldap.sample.repo;
 
 import ldap.sample.domain.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.stereotype.Repository;
@@ -16,6 +17,9 @@ public class UserLdapRepository implements IUserLdapRepository {
     @Autowired
     private LdapHelper ldapHelper;
 
+	@Autowired
+	Util util;
+	
     // Users
     @Override
     public void createUser(User user) {
@@ -34,7 +38,7 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public void deleteUser(String userName) {
-        ldapTemplate.unbind(ldapHelper.buildUserDn(userName), true);
+        ldapTemplate.unbind(util.buildUserDn(userName), true);
     }
 
     @Override
@@ -49,8 +53,8 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public Profile findProfile(String userName, String profileId) {
-        LdapName userDn = ldapHelper.buildUserDn(userName);
-        if (ldapHelper.isExist(userDn)) {
+        LdapName userDn = util.buildUserDn(userName);
+        if (util.isExist(userDn)) {
             return ldapHelper.findProfile(userName, profileId);
         }
         return null;
@@ -58,7 +62,7 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public void deleteProfile(String userName, String profileId) {
-        LdapName profileDn = ldapHelper.buildProfileDn(userName, profileId);
+        LdapName profileDn = util.buildProfileDn(userName, profileId);
         ldapTemplate.unbind(profileDn, true);
     }
 
@@ -74,10 +78,10 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public InsurerProfile findInsurerProfile(String userName, String profileId, String insurerProfileId) {
-        LdapName userDn = ldapHelper.buildUserDn(userName);
-        if (ldapHelper.isExist(userDn)) {
-            LdapName profileDn = ldapHelper.buildProfileDn(userName, profileId);
-            if (ldapHelper.isExist(profileDn)) {
+        LdapName userDn = util.buildUserDn(userName);
+        if (util.isExist(userDn)) {
+            LdapName profileDn = util.buildProfileDn(userName, profileId);
+            if (util.isExist(profileDn)) {
                 return ldapHelper.findInsurerProfile(userName, profileId, insurerProfileId);
             }
         }
@@ -86,7 +90,7 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public void deleteInsurerProfile(String userName, String profileId, String insurerProfileId) {
-        LdapName insurerProfileDn = ldapHelper.buildInsurerProfileDn(userName, profileId, insurerProfileId);
+        LdapName insurerProfileDn = util.buildInsurerProfileDn(userName, profileId, insurerProfileId);
         ldapTemplate.unbind(insurerProfileDn);
     }
 
@@ -108,7 +112,7 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public void deleteRole(String roleCode) {
-        LdapName roleDn = ldapHelper.buildRoleDn(roleCode);
+        LdapName roleDn = util.buildRoleDn(roleCode);
         ldapTemplate.unbind(roleDn, true);
     }
 
@@ -124,8 +128,8 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public Permission findPermission(String roleCode, String permissionId) {
-        LdapName roleDn = ldapHelper.buildRoleDn(roleCode);
-        if (ldapHelper.isExist(roleDn)) {
+        LdapName roleDn = util.buildRoleDn(roleCode);
+        if (util.isExist(roleDn)) {
             return ldapHelper.findPermission(roleCode, permissionId);
         }
         return null;
@@ -133,9 +137,36 @@ public class UserLdapRepository implements IUserLdapRepository {
 
     @Override
     public void deletePermission(String roleCode, String permissionId) {
-        LdapName permissionDn = ldapHelper.buildPermissionDn(roleCode, permissionId);
+        LdapName permissionDn = util.buildPermissionDn(roleCode, permissionId);
         ldapTemplate.unbind(permissionDn);
     }
+
+	@Override
+	public void createAdi(String userName, String profileId,
+			String insurerProfileId, AdditionalInfo adi) {
+		ldapHelper.createAdditionalInfo(userName, profileId, insurerProfileId, adi);
+		
+	}
+
+	@Override
+	public void updateAdi(String userName, String profileId,
+			String insurerProfileId, AdditionalInfo adi) {
+		ldapHelper.updateAdditionalInfo(userName, profileId, insurerProfileId, adi);
+		
+	}
+
+	@Override
+	public AdditionalInfo findAdi(String userName, String profileId,
+			String insurerProfileId, String adiId) {
+		return ldapHelper.findAdditionalInfo(userName, profileId, insurerProfileId, adiId);
+	}
+
+	@Override
+	public void deleteAdi(String userName, String profileId,
+			String insurerProfileId, String adiId) {
+		LdapName adiDn = util.buildAdditionalInfoDn(userName, profileId, insurerProfileId, adiId);
+		ldapTemplate.unbind(adiDn);
+	}
 
 
 }

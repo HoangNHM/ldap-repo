@@ -1,14 +1,10 @@
 package ldap.sample.repo;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import javax.naming.NamingException;
-import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 
-import ldap.sample.constant.ConstantLdap;
 import ldap.sample.domain.AdditionalInfo;
 import ldap.sample.domain.InsurerProfile;
 import ldap.sample.domain.Permission;
@@ -17,85 +13,17 @@ import ldap.sample.domain.Role;
 import ldap.sample.domain.User;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.ldap.core.LdapTemplate;
-import org.springframework.ldap.support.LdapNameBuilder;
 import org.springframework.stereotype.Service;
 
-/**
- * Created by vantuegia on 3/26/2017.
- */
 @Service
 final class LdapHelper {
 
 	@Autowired
 	LdapTemplate ldapTemplate;
-
-	boolean isExist(LdapName dnName) {
-		String dn = dnName.toString();
-		int split = dn.indexOf(',');
-		String baseDn = dn.substring(split + 1);
-		String cn = dn.substring(0, split);
-		AttributesMapper attributesMapper = new AttributesMapper() {
-
-			@Override
-			public Object mapFromAttributes(Attributes attrs)
-					throws NamingException {
-				return attrs.get("cn").get();
-			}
-		};
-		List<Object> list = ldapTemplate.search(baseDn, cn, attributesMapper);
-		if (list.isEmpty()) {
-			return false;
-		} else {
-			return true;
-		}
-	}
-
-	LdapName buildUserDn(String userName) {
-		return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
-				.add("cn=" + userName).build();
-	}
-
-	LdapName buildProfileDn(String userName, String profileId) {
-		return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
-				.add("cn=" + userName).add("cn=" + profileId).build();
-	}
-
-	LdapName buildInsurerProfileDn(String userName, String profileId,
-			String insurerProfileId) {
-		return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
-				.add("cn=" + userName).add("cn=" + profileId)
-				.add("cn=" + insurerProfileId).build();
-	}
-
-	LdapName buildAdditionalInfoDn(String userName, String profileId,
-			String insurerProfileId, String additionalInfoId) {
-		return LdapNameBuilder.newInstance(ConstantLdap.USERS_DN_BASE)
-				.add("cn=" + userName).add("cn=" + profileId)
-				.add("cn=" + insurerProfileId).add("cn=" + additionalInfoId)
-				.build();
-	}
-
-	LdapName buildRoleDn(String roleCode) {
-		return LdapNameBuilder.newInstance(ConstantLdap.ROLES_DN_BASE)
-				.add("cn=" + roleCode).build();
-	}
-
-	LdapName buildPermissionDn(String roleCode, String permissionId) {
-		return LdapNameBuilder.newInstance(ConstantLdap.ROLES_DN_BASE)
-				.add("cn=" + roleCode).add("cn=" + permissionId).build();
-	}
-
-	List<String> removePrefixCn(List<String> stringList) {
-		List<String> result = new ArrayList<String>();
-		for (String str : stringList) {
-			if (str.startsWith("cn=")) {
-				result.add(str.substring(3));
-			}
-		}
-		return result;
-	}
+	
+	@Autowired
+	Util util;
 
 	void createAdditionalInfo(String userName, String profileId,
 			String insurerProfileId, AdditionalInfo adi) {
@@ -144,9 +72,9 @@ final class LdapHelper {
 		adi.setUserCn(userName);
 		adi.setProfileCn(profileId);
 		adi.setInsurerCn(insurerProfileId);
-		LdapName adiDn = buildAdditionalInfoDn(userName, profileId,
+		LdapName adiDn = util.buildAdditionalInfoDn(userName, profileId,
 				insurerProfileId, adi.getAdditionalInfoId());
-		if (isExist(adiDn)) {
+		if (util.isExist(adiDn)) {
 			ldapTemplate.update(adi);
 		} else {
 			ldapTemplate.create(adi);
@@ -157,10 +85,10 @@ final class LdapHelper {
 			InsurerProfile insurerProfile) {
 		insurerProfile.setUserCn(userName);
 		insurerProfile.setProfileCn(profileId);
-		LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId,
+		LdapName insurerProfileDn = util.buildInsurerProfileDn(userName, profileId,
 				insurerProfile.getInsurerId());
-		if (isExist(insurerProfileDn)) {
-			List<String> oldAdiCn = removePrefixCn(ldapTemplate
+		if (util.isExist(insurerProfileDn)) {
+			List<String> oldAdiCn = util.removePrefixCn(ldapTemplate
 					.list(insurerProfileDn));
 
 			ldapTemplate.update(insurerProfile);
@@ -172,7 +100,7 @@ final class LdapHelper {
 			}
 
 			for (String unUsedAdiId : oldAdiCn) {
-				LdapName unUsedAdiDn = buildAdditionalInfoDn(userName,
+				LdapName unUsedAdiDn = util.buildAdditionalInfoDn(userName,
 						profileId, insurerProfile.getInsurerId(), unUsedAdiId);
 				ldapTemplate.unbind(unUsedAdiDn);
 			}
@@ -184,15 +112,15 @@ final class LdapHelper {
 
 	void updateProfile(String userName, Profile profile) {
 		profile.setUserCn(userName);
-		LdapName profileDn = buildProfileDn(userName, profile.getProfileId());
-		if (isExist(profileDn)) {
-			List<String> oldInsurerProfilesCn = removePrefixCn(ldapTemplate
+		LdapName profileDn = util.buildProfileDn(userName, profile.getProfileId());
+		if (util.isExist(profileDn)) {
+			List<String> oldInsurerProfilesCn = util.removePrefixCn(ldapTemplate
 					.list(profileDn));
 			ldapTemplate.update(profile);
 
 			Set<InsurerProfile> insurerProfiles = profile.getInsurerProfiles();
 			assert !insurerProfiles.isEmpty() : "User " + userName
-					+ ", profile " + profile + ", Must have InsurerProfile";
+					+ ", profile " + profile.getProfileId() + ", Must have InsurerProfile";
 			for (InsurerProfile insurerProfile : insurerProfiles) {
 				oldInsurerProfilesCn.remove(insurerProfile.getInsurerId());
 				updateInsurerProfile(userName, profile.getProfileId(),
@@ -200,7 +128,7 @@ final class LdapHelper {
 			}
 
 			for (String unUsedInsurerProfileId : oldInsurerProfilesCn) {
-				LdapName unUsedInsurerProfileDn = buildInsurerProfileDn(
+				LdapName unUsedInsurerProfileDn = util.buildInsurerProfileDn(
 						userName, profile.getProfileId(),
 						unUsedInsurerProfileId);
 				ldapTemplate.unbind(unUsedInsurerProfileDn);
@@ -214,9 +142,9 @@ final class LdapHelper {
 	void updateUser(User user) {
 		ldapTemplate.update(user);
 
-		LdapName userDn = buildUserDn(user.getUserName());
+		LdapName userDn = util.buildUserDn(user.getUserName());
 		// Get list old profile base on userDn
-		List<String> oldProfilesId = removePrefixCn(ldapTemplate.list(userDn));
+		List<String> oldProfilesId = util.removePrefixCn(ldapTemplate.list(userDn));
 
 		// Update current user profile
 		Profile profile = user.getProfile();
@@ -227,7 +155,7 @@ final class LdapHelper {
 
 		// Delete unused (oldProfiles - curProfiles)user profile
 		for (String unUsedProfileId : oldProfilesId) {
-			LdapName unUsedProfileDn = buildProfileDn(user.getUserName(),
+			LdapName unUsedProfileDn = util.buildProfileDn(user.getUserName(),
 					unUsedProfileId);
 			ldapTemplate.unbind(unUsedProfileDn);
 		}
@@ -235,9 +163,9 @@ final class LdapHelper {
 
 	AdditionalInfo findAdditionalInfo(String userName, String profileId,
 			String insurerProfileId, String adiId) {
-		LdapName adiDn = buildAdditionalInfoDn(userName, profileId,
+		LdapName adiDn = util.buildAdditionalInfoDn(userName, profileId,
 				insurerProfileId, adiId);
-		if (isExist(adiDn)) {
+		if (util.isExist(adiDn)) {
 			return ldapTemplate.findByDn(adiDn, AdditionalInfo.class);
 		} else {
 			return null;
@@ -246,13 +174,13 @@ final class LdapHelper {
 
 	InsurerProfile findInsurerProfile(String userName, String profileId,
 			String insurerProfileId) {
-		LdapName insurerProfileDn = buildInsurerProfileDn(userName, profileId,
+		LdapName insurerProfileDn = util.buildInsurerProfileDn(userName, profileId,
 				insurerProfileId);
-		if (isExist(insurerProfileDn)) {
+		if (util.isExist(insurerProfileDn)) {
 			InsurerProfile insurerProfile = ldapTemplate.findByDn(
 					insurerProfileDn, InsurerProfile.class);
 
-			List<String> adisId = removePrefixCn(ldapTemplate
+			List<String> adisId = util.removePrefixCn(ldapTemplate
 					.list(insurerProfileDn));
 			
 			assert adisId.size() < 2 : "User " + userName + ", profile "
@@ -269,12 +197,14 @@ final class LdapHelper {
 	}
 
 	Profile findProfile(String userName, String profileId) {
-		LdapName profileDn = buildProfileDn(userName, profileId);
-		if (isExist(profileDn)) {
+		LdapName profileDn = util.buildProfileDn(userName, profileId);
+		if (util.isExist(profileDn)) {
 			Profile profile = ldapTemplate.findByDn(profileDn, Profile.class);
 
-			List<String> insurerProfilesId = removePrefixCn(ldapTemplate
+			List<String> insurerProfilesId = util.removePrefixCn(ldapTemplate
 					.list(profileDn));
+			assert !insurerProfilesId.isEmpty() : "User " + userName
+			+ ", profile " + profileId + ", Must have InsurerProfile";
 			for (String insurerProfileId : insurerProfilesId) {
 				profile.addInsurerProfile(findInsurerProfile(userName,
 						profileId, insurerProfileId));
@@ -286,11 +216,11 @@ final class LdapHelper {
 	}
 
 	User findUser(String userName) {
-		LdapName userDn = buildUserDn(userName);
-		if (isExist(userDn)) {
+		LdapName userDn = util.buildUserDn(userName);
+		if (util.isExist(userDn)) {
 			User user = ldapTemplate.findByDn(userDn, User.class);
 
-			List<String> profilesId = removePrefixCn(ldapTemplate.list(userDn));
+			List<String> profilesId = util.removePrefixCn(ldapTemplate.list(userDn));
 			assert profilesId.size() < 2 : "User " + userName
 					+ ", Multiple profile is invalid";
 			for (String profileId : profilesId) {
@@ -310,6 +240,7 @@ final class LdapHelper {
 	void createRole(Role role) {
 		ldapTemplate.create(role);
 		Set<Permission> permissions = role.getPermissions();
+		assert !permissions.isEmpty() : "Role " + role.getRoleCode() + ", Must have Permissions";
 		for (Permission permission : permissions) {
 			createPermission(role.getRoleCode(), permission);
 		}
@@ -317,9 +248,9 @@ final class LdapHelper {
 
 	void updatePermission(String roleCode, Permission permission) {
 		permission.setRoleCn(roleCode);
-		LdapName permissionDn = buildPermissionDn(roleCode,
+		LdapName permissionDn = util.buildPermissionDn(roleCode,
 				permission.getPermissionId());
-		if (isExist(permissionDn)) {
+		if (util.isExist(permissionDn)) {
 			ldapTemplate.update(permission);
 		} else {
 			ldapTemplate.create(permission);
@@ -329,13 +260,14 @@ final class LdapHelper {
 	void updateRole(Role role) {
 		ldapTemplate.update(role);
 
-		LdapName roleDn = buildRoleDn(role.getRoleCode());
+		LdapName roleDn = util.buildRoleDn(role.getRoleCode());
 		// Get list old permission base on roleDn
-		List<String> oldPermissionsId = removePrefixCn(ldapTemplate
+		List<String> oldPermissionsId = util.removePrefixCn(ldapTemplate
 				.list(roleDn));
 
 		// Update current user Permissions
 		Set<Permission> permissions = role.getPermissions();
+		assert !permissions.isEmpty() : "Role " + role.getRoleCode() + ", Must have Permissions";
 		for (Permission permission : permissions) {
 			oldPermissionsId.remove(permission.getPermissionId());
 			updatePermission(role.getRoleCode(), permission);
@@ -343,15 +275,15 @@ final class LdapHelper {
 
 		// Delete unused (oldPermissions - curPermissions) Role Permissions
 		for (String unUsePermissionId : oldPermissionsId) {
-			LdapName unUsedPermissionDn = buildPermissionDn(role.getRoleCode(),
+			LdapName unUsedPermissionDn = util.buildPermissionDn(role.getRoleCode(),
 					unUsePermissionId);
 			ldapTemplate.unbind(unUsedPermissionDn);
 		}
 	}
 
 	Permission findPermission(String roleCode, String permissionId) {
-		LdapName permissionDn = buildPermissionDn(roleCode, permissionId);
-		if (isExist(permissionDn)) {
+		LdapName permissionDn = util.buildPermissionDn(roleCode, permissionId);
+		if (util.isExist(permissionDn)) {
 			return ldapTemplate.findByDn(permissionDn, Permission.class);
 		} else {
 			return null;
@@ -359,11 +291,12 @@ final class LdapHelper {
 	}
 
 	Role findRole(String roleCode) {
-		LdapName roleDn = buildRoleDn(roleCode);
-		if (isExist(roleDn)) {
+		LdapName roleDn = util.buildRoleDn(roleCode);
+		if (util.isExist(roleDn)) {
 			Role role = ldapTemplate.findByDn(roleDn, Role.class);
-			List<String> permissionsId = removePrefixCn(ldapTemplate
+			List<String> permissionsId = util.removePrefixCn(ldapTemplate
 					.list(roleDn));
+			assert !permissionsId.isEmpty() : "Role " + roleCode + ", Must have Permissions";
 			for (String permissionId : permissionsId) {
 				role.addPermission(findPermission(roleCode, permissionId));
 			}

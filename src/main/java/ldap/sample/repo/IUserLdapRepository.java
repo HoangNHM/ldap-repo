@@ -19,6 +19,11 @@ public interface IUserLdapRepository {
 	InsurerProfile findInsurerProfile(String userName, String profileId, String insurerProfileId);
 	void deleteInsurerProfile(String userName, String profileId, String insurerProfileId);
 	
+	void createAdi(String userName, String profileId, String insurerProfileId, AdditionalInfo adi);
+	void updateAdi(String userName, String profileId, String insurerProfileId, AdditionalInfo adi);
+	AdditionalInfo findAdi(String userName, String profileId, String insurerProfileId, String adiId);
+	void deleteAdi(String userName, String profileId, String insurerProfileId, String adiId);
+	
 	void createRole(Role role);
 	void updateRole(Role role);
 	Role findRole(String roleCode);
