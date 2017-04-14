@@ -1,7 +1,20 @@
 package ldap.sample.controllers;
 
+import java.io.IOException;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Set;
+
+import javax.naming.Context;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.SearchControls;
+import javax.naming.directory.SearchResult;
+import javax.naming.ldap.Control;
+import javax.naming.ldap.InitialLdapContext;
+import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.PagedResultsControl;
+import javax.naming.ldap.PagedResultsResponseControl;
 
 import ldap.sample.domain.AdditionalInfo;
 import ldap.sample.domain.InsurerProfile;
@@ -9,6 +22,7 @@ import ldap.sample.domain.Permission;
 import ldap.sample.domain.Profile;
 import ldap.sample.domain.Role;
 import ldap.sample.domain.User;
+import ldap.sample.repo.LdapHelper;
 import ldap.sample.repo.UserLdapRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +35,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import static com.xerox.amazonws.ec2.ImageListAttribute.ImageListAttributeItemType.userId;
+import com.unboundid.ldap.sdk.LDAPException;
 
 @RestController
 public class UserController {
@@ -31,18 +45,103 @@ public class UserController {
 
 	@Autowired
 	LdapTemplate ldapTemplate;
+	
+	@Autowired
+	LdapHelper ldapHelper;
 
 	@RequestMapping("/about")
 	public String about() {
 		return "Micro service group ldap repo";
 	}
+	
+	@RequestMapping(method = RequestMethod.GET, value = "/export")
+	public ResponseEntity<?> export(int size) throws Exception {
+//		iposRepository.search(size);
+		ldapHelper.sample();
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+	
+	@RequestMapping(method = RequestMethod.GET, value = "/all")
+	public ResponseEntity<?> all() {
+
+	    Hashtable<String, Object> env = new Hashtable<String, Object>(11);
+	    env
+	        .put(Context.INITIAL_CONTEXT_FACTORY,
+	            "com.sun.jndi.ldap.LdapCtxFactory");
+
+	    /* Specify host and port to use for directory service */
+	    env.put(Context.PROVIDER_URL,
+	        "ldap://localhost:10389/ou=users,dc=ipos,dc=com");
+
+	    try {
+	      LdapContext ctx = new InitialLdapContext(env, null);
+
+	      // Activate paged results
+	      int pageSize = 5;
+	      byte[] cookie = null;
+	      ctx.setRequestControls(new Control[] { new PagedResultsControl(pageSize,
+	          Control.NONCRITICAL) });
+	      int total;
+
+	      do {
+	        /* perform the search */
+	        NamingEnumeration results = ctx.search("", "(objectclass=*)",
+	            new SearchControls());
+
+	        /* for each entry print out name + all attrs and values */
+	        while (results != null && results.hasMore()) {
+	          SearchResult entry = (SearchResult) results.next();
+	          System.out.println(entry.getName());
+	        }
+
+	        // Examine the paged results control response
+	        Control[] controls = ctx.getResponseControls();
+	        if (controls != null) {
+	          for (int i = 0; i < controls.length; i++) {
+	            if (controls[i] instanceof PagedResultsResponseControl) {
+	              PagedResultsResponseControl prrc = (PagedResultsResponseControl) controls[i];
+	              total = prrc.getResultSize();
+	              if (total != 0) {
+	                System.out.println("***************** END-OF-PAGE "
+	                    + "(total : " + total + ") *****************\n");
+	              } else {
+	                System.out.println("***************** END-OF-PAGE "
+	                    + "(total: unknown) ***************\n");
+	              }
+	              cookie = prrc.getCookie();
+	            }
+	          }
+	        } else {
+	          System.out.println("No controls were sent from the server");
+	        }
+	        // Re-activate paged results
+	        ctx.setRequestControls(new Control[] { new PagedResultsControl(
+	            pageSize, cookie, Control.CRITICAL) });
+
+	      } while (cookie != null);
+
+	      ctx.close();
+
+	    } catch (NamingException e) {
+	      System.err.println("PagedSearch failed.");
+	      e.printStackTrace();
+	    } catch (IOException ie) {
+	      System.err.println("PagedSearch failed.");
+	      ie.printStackTrace();
+	    }
+	    return new ResponseEntity<>(HttpStatus.OK);
+	  }
+	
+	@RequestMapping(method = RequestMethod.GET, value = "/users")
+	public ResponseEntity<?> getAllUserCns(byte[] cookie) throws NamingException {
+		return new ResponseEntity<>(ldapHelper.getAllUserCns(cookie), HttpStatus.FOUND);
+	}
 
 	// User
 	@RequestMapping(method = RequestMethod.POST, value = "/users")
-	public ResponseEntity<?> createUser(
-			String name) {
+	public ResponseEntity<?> createUser(@RequestBody User user) {
 
-		User user = newUser(name);
+//		User user = newUser(name);
 		iposRepository.createUser(user);
 
 		return new ResponseEntity<>(user, HttpStatus.CREATED);

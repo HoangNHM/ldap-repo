@@ -21,11 +21,16 @@ public class Util {
 	@Autowired
 	LdapTemplate ldapTemplate;
 	
+	/**
+	 * Check if DN is exist
+	 * @param dnName
+	 * @return
+	 */
 	boolean isExist(LdapName dnName) {
 		String dn = dnName.toString();
 		int split = dn.indexOf(',');
-		String baseDn = dn.substring(split + 1);
-		String cn = dn.substring(0, split);
+		String baseDn = dn.substring(split + 1); // base part
+		String cn = dn.substring(0, split); // leaf part of DN
 		@SuppressWarnings("rawtypes")
 		AttributesMapper attributesMapper = new AttributesMapper() {
 
@@ -36,6 +41,7 @@ public class Util {
 			}
 		};
 		@SuppressWarnings("unchecked")
+		// Assume baseDn already exist
 		List<Object> list = ldapTemplate.search(baseDn, cn, attributesMapper);
 		if (list.isEmpty()) {
 			return false;

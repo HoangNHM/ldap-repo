@@ -1,12 +1,20 @@
 package ldap.sample.repo;
 
-import ldap.sample.domain.*;
+import javax.naming.ldap.LdapName;
+
+import ldap.sample.domain.AdditionalInfo;
+import ldap.sample.domain.InsurerProfile;
+import ldap.sample.domain.Permission;
+import ldap.sample.domain.Profile;
+import ldap.sample.domain.Role;
+import ldap.sample.domain.User;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.stereotype.Repository;
 
-import javax.naming.ldap.LdapName;
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
 
 @Repository
 public class UserLdapRepository implements IUserLdapRepository {
@@ -19,6 +27,16 @@ public class UserLdapRepository implements IUserLdapRepository {
 
 	@Autowired
 	Util util;
+
+	public void export() throws LDAPException{
+		LDAPConnection lDAPConnection = new LDAPConnection("localhost", 10389);
+		ldapHelper.sortedSearch("dc=ipos,dc=com", "(&(objectclass=*))", lDAPConnection, null);
+	}
+
+	public void search(int size) throws Exception{
+		LDAPConnection lDAPConnection = new LDAPConnection("localhost", 10389);
+		ldapHelper.search(lDAPConnection, "dc=ipos,dc=com", "(&(objectclass=*))", null, size);
+	}
 	
     // Users
     @Override
@@ -167,6 +185,5 @@ public class UserLdapRepository implements IUserLdapRepository {
 		LdapName adiDn = util.buildAdditionalInfoDn(userName, profileId, insurerProfileId, adiId);
 		ldapTemplate.unbind(adiDn);
 	}
-
 
 }
